@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Image Metadata Analyzer</title>
+<style>
+:root{--bg:#0b1220;--card:#111a2e;--line:#22304d;--txt:#e6edf7;--mut:#8ea0bd;--acc:#38bdf8;--acc2:#818cf8;--ok:#22c55e;--warn:#f59e0b;--bad:#ef4444}
+*{box-sizing:border-box}
+body{margin:0;font-family:Segoe UI,system-ui,Arial,sans-serif;background:radial-gradient(1200px 500px at 50% -10%,#16264a,var(--bg));color:var(--txt);min-height:100vh}
+.wrap{max-width:980px;margin:auto;padding:28px 16px 48px}
+header{text-align:center;margin-bottom:22px}
+h1{margin:0 0 6px;font-size:2rem;background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+header p{margin:0;color:var(--mut)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.chip{font-size:.78rem;padding:4px 10px;border:1px solid var(--line);border-radius:999px;color:var(--mut)}
+.tabs{display:flex;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:5px;margin-bottom:16px}
+.tab{flex:1;padding:10px;border:0;border-radius:8px;background:transparent;color:var(--mut);font-weight:600;font-size:1rem;cursor:pointer}
+.tab.on{background:linear-gradient(90deg,var(--acc),var(--acc2));color:#04121f}
+.panel{display:none}.panel.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px}
+.card h3{margin:0 0 12px;font-size:1.05rem}
+.drops{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:14px}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:18px;text-align:center;color:var(--mut);display:block}
+.drop:hover{border-color:var(--acc)}
+.drop b{display:block;color:var(--txt);margin-bottom:8px}
+input[type=file]{max-width:100%;color:var(--mut);font-size:.85rem}
+input[type=file]::file-selector-button{background:#1b2a48;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-right:10px;cursor:pointer}
+.btn{background:linear-gradient(90deg,var(--acc),var(--acc2));color:#04121f;border:0;border-radius:8px;padding:11px 22px;font-weight:700;font-size:1rem;cursor:pointer}
+.btn.sec{background:#1b2a48;color:var(--txt);border:1px solid var(--line);padding:7px 14px;font-size:.85rem}
+.btn:disabled{opacity:.6;cursor:wait}
+.top{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.preview{width:230px;max-width:100%;border-radius:10px;border:1px solid var(--line)}
+.top .info{flex:1;min-width:240px}
+.top h2{margin:0 0 8px;word-break:break-all;font-size:1.25rem}
+.badge{display:inline-block;padding:4px 12px;border-radius:999px;font-weight:700;font-size:.8rem;color:#04121f}
+.badge.LOW,.ok{--c:var(--ok)}.badge.MEDIUM,.warn{--c:var(--warn)}.badge.HIGH,.bad{--c:var(--bad)}
+.badge{background:var(--c)}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:14px}
+.stat{background:#0d1629;border:1px solid var(--line);border-radius:10px;padding:10px}
+.stat span{display:block;font-size:.72rem;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+.stat b{font-size:.95rem;word-break:break-word}
+.hash{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.hash:last-child{border:0}
+.hash span{width:70px;color:var(--mut);font-size:.85rem;flex:none}
+.hash code{flex:1;word-break:break-all;font-size:.82rem}
+ul.f{list-style:none;padding:0;margin:0}
+ul.f li{padding:9px 12px;border-left:4px solid var(--c,var(--mut));background:#0d1629;border-radius:6px;margin-bottom:8px}
+ul.f li b{color:var(--c);margin-right:8px;font-size:.78rem}
+ul.f li.low{--c:var(--acc)}ul.f li.medium{--c:var(--warn)}ul.f li.high{--c:var(--bad)}ul.f li.ok{--c:var(--ok)}
+table{width:100%;border-collapse:collapse}
+td,th{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;word-break:break-all;font-size:.9rem;vertical-align:top}
+th{color:var(--mut);font-size:.75rem;text-transform:uppercase}
+td:first-child{color:var(--mut);width:30%}
+tr.diff td{background:rgba(245,158,11,.1)}
+.yes{color:var(--ok);font-weight:700}.no{color:var(--bad);font-weight:700}
+.scroll{max-height:340px;overflow:auto}
+.search{width:100%;padding:9px 12px;margin-bottom:10px;border-radius:8px;border:1px solid var(--line);background:#0d1629;color:var(--txt)}
+.verdict{border-left:6px solid var(--c);padding:14px 16px;border-radius:10px;background:#0d1629;font-weight:700;font-size:1.05rem;margin-bottom:14px}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;text-align:center}
+.cmp img{width:100%;max-height:230px;object-fit:contain;border-radius:10px;border:1px solid var(--line);background:#0d1629}
+.cmp small{display:block;color:var(--mut);margin-top:4px;word-break:break-all}
+.bar{height:12px;border-radius:999px;background:#0d1629;border:1px solid var(--line);overflow:hidden;margin:6px 0 14px}
+.bar i{display:block;height:100%;background:var(--c)}
+a{color:var(--acc)}
+footer{text-align:center;color:var(--mut);font-size:.8rem;margin-top:24px}
+</style></head><body><div class="wrap">
+
+<header>
+  <h1>Image Metadata Analyzer</h1>
+  <p>Inspect EXIF, GPS and file integrity, or compare two images.</p>
+  <div class="chips"><span class="chip">EXIF &amp; GPS</span><span class="chip">MD5 · SHA-1 · SHA-256</span><span class="chip">Fake extension check</span><span class="chip">Perceptual hash compare</span></div>
+</header>
+
+<div class="tabs">
+  <button class="tab {{ 'on' if tab == 'analyze' }}" data-t="analyze">Analyze image</button>
+  <button class="tab {{ 'on' if tab == 'compare' }}" data-t="compare">Compare two images</button>
+</div>
+
+<!-- ============ ANALYZE ============ -->
+<div class="panel {{ 'on' if tab == 'analyze' }}" id="analyze">
+  <form class="card" method="post" action="/" enctype="multipart/form-data">
+    <div class="drops"><label class="drop"><b>Choose an image</b><input type="file" name="image" accept="image/*" required></label></div>
+    <button class="btn">Analyze</button>
+  </form>
+
+  {% if r %}
+  <div class="card">
+    <div class="top">
+      {% if r.preview %}<img class="preview" src="{{ r.preview }}" alt="Preview of the uploaded image">{% endif %}
+      <div class="info">
+        <h2>{{ r.file }}</h2>
+        <span class="badge {{ r.risk }}">{{ r.risk }} RISK</span>
+        {% if r.error %}<p class="no">{{ r.error }}</p>{% endif %}
+        <div class="stats">{% for k, v in r.summary %}<div class="stat"><span>{{ k }}</span><b>{{ v }}</b></div>{% endfor %}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card"><h3>File hashes</h3>
+    {% for name, val in [("MD5", r.hashes.md5), ("SHA-1", r.hashes.sha1), ("SHA-256", r.hashes.sha256)] %}
+    <div class="hash"><span>{{ name }}</span><code>{{ val }}</code><button class="btn sec" data-copy="{{ val }}">Copy</button></div>
+    {% endfor %}
+  </div>
+
+  <div class="card"><h3>Findings</h3>
+    <ul class="f">{% for level, msg in r.flags %}<li class="{{ level }}"><b>{{ level|upper }}</b>{{ msg }}</li>{% else %}<li class="ok"><b>OK</b>Nothing suspicious found.</li>{% endfor %}</ul>
+    <p style="color:var(--mut);font-size:.85rem;margin:10px 0 0">Extension type: {{ r.extension_type }} · Real type: {{ r.real_type }}</p>
+  </div>
+
+  {% if r.gps %}<div class="card"><h3>GPS location</h3>
+    <p style="margin:0">{{ r.gps.lat }}, {{ r.gps.lon }} · <a href="{{ r.gps.map }}" target="_blank" rel="noopener">Open in Google Maps</a></p>
+  </div>{% endif %}
+
+  <div class="card"><h3>All EXIF data ({{ r.exif|length }} tags)</h3>
+    {% if r.exif %}
+    <input class="search" id="q" placeholder="Search tags, e.g. Model, Date, Software" aria-label="Search EXIF tags">
+    <div class="scroll"><table id="exif">{% for k, v in r.exif.items() %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}</table></div>
+    {% else %}<p style="margin:0;color:var(--mut)">No EXIF data in this image.</p>{% endif %}
+  </div>
+
+  <button class="btn" id="dl">Download JSON report</button>
+  <script>const REPORT = {{ r_json|tojson }};</script>
+  {% endif %}
+</div>
+
+<!-- ============ COMPARE ============ -->
+<div class="panel {{ 'on' if tab == 'compare' }}" id="compare">
+  <form class="card" method="post" action="/compare" enctype="multipart/form-data">
+    <div class="drops">
+      <label class="drop"><b>Image A</b><input type="file" name="image1" accept="image/*" required></label>
+      <label class="drop"><b>Image B</b><input type="file" name="image2" accept="image/*" required></label>
+    </div>
+    <button class="btn">Compare</button>
+  </form>
+
+  {% if c %}
+  <div class="card">
+    <div class="verdict {{ c.level }}">{{ c.verdict }}</div>
+    <div class="cmp">
+      <div>{% if c.prev_a %}<img src="{{ c.prev_a }}" alt="Image A">{% endif %}<small>A: {{ c.name_a }}</small></div>
+      <div>{% if c.prev_b %}<img src="{{ c.prev_b }}" alt="Image B">{% endif %}<small>B: {{ c.name_b }}</small></div>
+    </div>
+    {% if c.similarity is not none %}
+    <b>Visual similarity: {{ c.similarity }}%</b>
+    <div class="bar {{ c.level }}"><i style="width:{{ c.similarity }}%"></i></div>
+    <p style="color:var(--mut);font-size:.8rem;margin:0">Perceptual hash A: {{ c.phash_a }} · B: {{ c.phash_b }}</p>
+    {% endif %}
+    {% if c.error %}<p class="no">{{ c.error }}</p>{% endif %}
+  </div>
+
+  <div class="card"><h3>Hash comparison</h3>
+    <div class="scroll"><table>
+      <tr><th>Algorithm</th><th>Image A</th><th>Image B</th><th>Match</th></tr>
+      {% for h in c.hash_rows %}<tr><td>{{ h.name }}</td><td><code>{{ h.a }}</code></td><td><code>{{ h.b }}</code></td><td class="{{ 'yes' if h.same else 'no' }}">{{ 'YES' if h.same else 'NO' }}</td></tr>{% endfor %}
+    </table></div>
+  </div>
+
+  <div class="card"><h3>Metadata differences</h3>
+    <div class="scroll"><table>
+      <tr><th>Field</th><th>Image A</th><th>Image B</th></tr>
+      {% for d in c.details %}<tr class="{{ '' if d.same else 'diff' }}"><td>{{ d.label }}</td><td>{{ d.a }}</td><td>{{ d.b }}</td></tr>{% endfor %}
+    </table></div>
+    <p style="color:var(--mut);font-size:.8rem;margin:10px 0 0">Highlighted rows are different between the two images.</p>
+  </div>
+  {% endif %}
+</div>
+
+<footer>Uploaded images are analysed in memory and deleted immediately. Nothing is stored.</footer>
+</div>
+
+<script>
+document.querySelectorAll('.tab').forEach(function (b) {
+  b.addEventListener('click', function () {
+    document.querySelectorAll('.tab').forEach(function (x) { x.classList.toggle('on', x === b); });
+    document.querySelectorAll('.panel').forEach(function (p) { p.classList.toggle('on', p.id === b.dataset.t); });
+  });
+});
+document.querySelectorAll('form').forEach(function (f) {
+  f.addEventListener('submit', function () {
+    var btn = f.querySelector('.btn');
+    setTimeout(function () { btn.disabled = true; btn.textContent = 'Working…'; }, 0);
+  });
+});
+document.querySelectorAll('[data-copy]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    navigator.clipboard.writeText(b.dataset.copy).then(function () {
+      b.textContent = 'Copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1200);
+    });
+  });
+});
+var q = document.getElementById('q');
+if (q) q.addEventListener('input', function () {
+  var t = q.value.toLowerCase();
+  document.querySelectorAll('#exif tr').forEach(function (tr) {
+    tr.style.display = tr.textContent.toLowerCase().indexOf(t) > -1 ? '' : 'none';
+  });
+});
+var dl = document.getElementById('dl');
+if (dl) dl.addEventListener('click', function () {
+  var blob = new Blob([JSON.stringify(REPORT, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (REPORT.file || 'report') + '.json';
+  a.click();
+});
+</script>
+</body></html>
